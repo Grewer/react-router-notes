@@ -1,30 +1,19 @@
 import './App.css';
-import {useMemo} from "react";
-import {
-    BrowserRouter as Router,
-    Switch,
-    Route,
-    Link
-} from "react-router-dom";
+import {BrowserRouter, Route, Routes} from "./react-router-dom";
+
 
 function App(props) {
 
-    console.log('App', props, fn)
+    console.log('App', props)
 
     return (
-        <Router>
-            <Switch>
-                <Route path="/about">
-                    <About/>
-                </Route>
-                <Route path="/users">
-                    <Users/>
-                </Route>
-                <Route path="/">
-                    <Home/>
-                </Route>
-            </Switch>
-        </Router>
+        <BrowserRouter>
+            <Routes>
+                <Route path="/about" element={<About/>}/>
+                <Route path="/users" element={<Users/>}/>
+                <Route path="/" element={<Home/>}/>
+            </Routes>
+        </BrowserRouter>
     );
 }
 

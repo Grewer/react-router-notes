@@ -238,9 +238,9 @@ export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
     }
 );
 
-if (__DEV__) {
-    Link.displayName = "Link";
-}
+// if (__DEV__) {
+//     Link.displayName = "Link";
+// }
 
 export interface NavLinkProps extends Omit<LinkProps, "className" | "style"> {
     caseSensitive?: boolean;
@@ -315,9 +315,9 @@ export const NavLink = React.forwardRef<HTMLAnchorElement, NavLinkProps>(
     }
 );
 
-if (__DEV__) {
-    NavLink.displayName = "NavLink";
-}
+// if (__DEV__) {
+//     NavLink.displayName = "NavLink";
+// }
 
 ////////////////////////////////////////////////////////////////////////////////
 // HOOKS
