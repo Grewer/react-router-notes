@@ -11,6 +11,24 @@
 
 BrowserRouter 和 hashRouter 的主要区别就在于使用的路由 API
 
+#### 简单解释
+
+> BrowserRouter
+
+它使用了 history 库 的API，也就是说，浏览器（IE 9和更低版本以及同时代的浏览器）是不可用的。  
+客户端React应用程序能够维护干净的路由，如 `example.com/react/route` ，但需要得到Web服务器的支持。  
+这需要Web服务器应该被配置为单页应用程序，即为/react/route路径或服务器上的任何其他路由提供相同的index.html。 
+
+> HashRouter
+
+它使用URL哈希，对支持的浏览器或网络服务器没有限制, 如 `example.com/#/react/route.`
+
+效果是所有后续的URL路径内容在服务器请求中被忽略（即你发送 "www.mywebsite.com/#/person/john"，服务器得到 "www.mywebsite.com"。
+因此，服务器将返回前#URL响应，然后后#路径将由你的客户端反应程序进行解析处理。
+
+
+#### 代码解析
+
 先说 hashRouter , 他的依赖度是最低的, 代码也很简单:
 
 ```tsx
@@ -310,3 +328,8 @@ function createHashHistory(
 
 
 ### createSearchParams
+
+
+## 引用
+
+- https://stackoverflow.com/questions/51974369/what-is-the-difference-between-hashrouter-and-browserrouter-in-react
