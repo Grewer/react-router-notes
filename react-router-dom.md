@@ -118,12 +118,9 @@ function createHashHistory(
      */
     let listeners = createEvents<Listener>();
     let blockers = createEvents<Blocker>();
-
-    if (index == null) {
-        index = 0;
-        globalHistory.replaceState({...globalHistory.state, idx: index}, '');
-    }
-
+    
+    
+    // base 标签  通过他判断  路由 base, TODO 后面实际操作尝试
     function getBaseHref() {
         let base = document.querySelector('base');
         let href = '';
@@ -137,10 +134,12 @@ function createHashHistory(
         return href;
     }
 
-    function createHref(to: To) {
+    function createHref(to: To) { // 返回 base + (string | createPath(to))
+        // createPath = pathname + search + hash
         return getBaseHref() + '#' + (typeof to === 'string' ? to : createPath(to));
     }
 
+    // 获取下一个 location 对象
     function getNextLocation(to: To, state: any = null): Location {
         return readOnly<Location>({
             pathname: location.pathname,
@@ -152,6 +151,7 @@ function createHashHistory(
         });
     }
 
+    // 获取 history 对象状态
     function getHistoryStateAndUrl(
         nextLocation: Location,
         index: number
