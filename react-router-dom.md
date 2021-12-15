@@ -61,7 +61,9 @@ function HashRouter({basename, children, window}: HashRouterProps) {
 这里需要了解的一个 API 是 `createHashHistory`, 他来自于 [history](https://github.com/remix-run/history) 仓库, 这里我们需要解析一下这个方法:
 
 ```tsx
-
+/**
+ * 此方法里并不是全部的源码, 省略了部分不太 core 的代码
+ */
 function createHashHistory(
     options: HashHistoryOptions = {}
 ): HashHistory {
@@ -119,127 +121,45 @@ function createHashHistory(
     let listeners = createEvents<Listener>();
     let blockers = createEvents<Blocker>();
     
-    
-    // base 标签  通过他判断  路由 base, TODO 后面实际操作尝试
-    function getBaseHref() {
-        let base = document.querySelector('base');
-        let href = '';
-
-        if (base && base.getAttribute('href')) {
-            let url = window.location.href;
-            let hashIndex = url.indexOf('#');
-            href = hashIndex === -1 ? url : url.slice(0, hashIndex);
-        }
-
-        return href;
-    }
-
-    function createHref(to: To) { // 返回 base + (string | createPath(to))
-        // createPath = pathname + search + hash
-        return getBaseHref() + '#' + (typeof to === 'string' ? to : createPath(to));
-    }
-
-    // 获取下一个 location 对象
-    function getNextLocation(to: To, state: any = null): Location {
-        return readOnly<Location>({
-            pathname: location.pathname,
-            hash: '',
-            search: '',
-            ...(typeof to === 'string' ? parsePath(to) : to),
-            state,
-            key: createKey()
-        });
-    }
-
-    // 获取 history 对象状态
-    function getHistoryStateAndUrl(
-        nextLocation: Location,
-        index: number
-    ): [HistoryState, string] {
-        return [
-            {
-                usr: nextLocation.state,
-                key: nextLocation.key,
-                idx: index
-            },
-            createHref(nextLocation)
-        ];
-    }
-
-    function allowTx(action: Action, location: Location, retry: () => void) {
-        return (
-            !blockers.length || (blockers.call({action, location, retry}), false)
-        );
-    }
-
-    function applyTx(nextAction: Action) {
-        action = nextAction;
-        [index, location] = getIndexAndLocation();
-        listeners.call({action, location});
-    }
-
+    // 常用的 push 方法
     function push(to: To, state?: any) {
-        let nextAction = Action.Push;
-        let nextLocation = getNextLocation(to, state);
+        let nextAction = Action.Push; // 枚举 Action.Push = 'PUSH'
+        let nextLocation = getNextLocation(to, state); // 生成一个新的 location 对象
 
         function retry() {
             push(to, state);
         }
 
-        warning(
-            nextLocation.pathname.charAt(0) === '/',
-            `Relative pathnames are not supported in hash history.push(${JSON.stringify(
-                to
-            )})`
-        );
-
+        // blockers 为空的时候
         if (allowTx(nextAction, nextLocation, retry)) {
+            // 根据 location 生成需要的对象, 只是数据格式更改了下
+            /* historyState = {
+                usr: nextLocation.state,
+                key: nextLocation.key,
+                idx: index
+            }*/
             let [historyState, url] = getHistoryStateAndUrl(nextLocation, index + 1);
 
-            // TODO: Support forced reloading
-            // try...catch because iOS limits us to 100 pushState calls :/
             try {
+                // 调用原生 API, history.pushState
                 globalHistory.pushState(historyState, '', url);
             } catch (error) {
-                // They are going to lose state here, but there is no real
-                // way to warn them about it since the page will refresh...
+                // 不兼容就使用这个
                 window.location.assign(url);
             }
-
-            applyTx(nextAction);
+            applyTx(nextAction); // listeners 中添加回调 nextAction
         }
     }
 
     function replace(to: To, state?: any) {
-        let nextAction = Action.Replace;
-        let nextLocation = getNextLocation(to, state);
-
-        function retry() {
-            replace(to, state);
-        }
-
-        warning(
-            nextLocation.pathname.charAt(0) === '/',
-            `Relative pathnames are not supported in hash history.replace(${JSON.stringify(
-                to
-            )})`
-        );
-
-        if (allowTx(nextAction, nextLocation, retry)) {
-            let [historyState, url] = getHistoryStateAndUrl(nextLocation, index);
-
-            // TODO: Support forced reloading
-            globalHistory.replaceState(historyState, '', url);
-
-            applyTx(nextAction);
-        }
+        // 同 push, 只不过调用的原生改成了这个  globalHistory.replaceState(historyState, '', url);
     }
 
-    function go(delta: number) {
+    function go(delta: number) { // 原生 go 方法
         globalHistory.go(delta);
     }
 
-    let history: HashHistory = {
+    let history: HashHistory = { // 定义的局部 history 对象, 最后要返回的
         get action() {
             return action;
         },
@@ -267,11 +187,8 @@ function createHashHistory(
             }
 
             return function () {
+                // 在页面 UnMount 的时候调用
                 unblock();
-
-                // Remove the beforeunload listener so the document may
-                // still be salvageable in the pagehide event.
-                // See https://html.spec.whatwg.org/#unloading-documents
                 if (!blockers.length) {
                     window.removeEventListener(BeforeUnloadEventType, promptBeforeUnload);
                 }
@@ -283,8 +200,6 @@ function createHashHistory(
 }
 
 ```
-
-// TODO 这里需要简化下代码
 
 ### Link
 
