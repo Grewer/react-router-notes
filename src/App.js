@@ -1,25 +1,32 @@
 import './App.css';
-import {BrowserRouter, Route, Routes} from "./react-router-dom";
+import {BrowserRouter, HashRouter, Route, Routes, useLocation} from "./react-router-dom";
+import {useNavigate} from "react-router";
 
 
 function App(props) {
 
-    console.log('App', props)
+    console.log('App1', props)
 
     return (
-        <BrowserRouter>
+        <HashRouter>
             <Routes>
                 <Route path="/about" element={<About/>}/>
                 <Route path="/users" element={<Users/>}/>
                 <Route path="/" element={<Home/>}/>
             </Routes>
-        </BrowserRouter>
+        </HashRouter>
     );
 }
 
 
 function Home() {
-    return <h2>Home</h2>;
+    let nav = useNavigate();
+    return <div>
+        <h2>Home</h2>
+        <button onClick={()=>{
+            nav('/users')
+        }}>users</button>
+    </div>;
 }
 
 function About() {

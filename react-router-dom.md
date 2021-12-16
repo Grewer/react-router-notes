@@ -203,6 +203,39 @@ function createHashHistory(
 
 ### Link
 
+一个经常用到的小组件, 常用来做跳转
+
+```tsx
+
+const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
+    function LinkWithRef(
+        { onClick, reloadDocument, replace = false, state, target, to, ...rest },
+        ref
+    ) {
+        let href = useHref(to);
+        let internalOnClick = useLinkClickHandler(to, { replace, state, target });
+        function handleClick(
+            event: React.MouseEvent<HTMLAnchorElement, MouseEvent>
+        ) {
+            if (onClick) onClick(event);
+            if (!event.defaultPrevented && !reloadDocument) {
+                internalOnClick(event);
+            }
+        }
+
+        return (
+            <a
+                {...rest}
+                href={href}
+                onClick={handleClick}
+                ref={ref}
+                target={target}
+            />
+        );
+    }
+);
+```
+
 ### NavLink
 
 ### useLinkClickHandler
