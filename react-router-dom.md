@@ -212,8 +212,13 @@ const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
         { onClick, reloadDocument, replace = false, state, target, to, ...rest },
         ref
     ) {
+        // useHref 来自于 react-router 中, 用来 parse URL
         let href = useHref(to);
+        
+        // 真实点击跳转调用的函数, 具体源码在下面给出
         let internalOnClick = useLinkClickHandler(to, { replace, state, target });
+        
+        // 点击 a 标签的句柄, 如果有 onClick 事件 则优先
         function handleClick(
             event: React.MouseEvent<HTMLAnchorElement, MouseEvent>
         ) {
@@ -236,7 +241,118 @@ const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
 );
 ```
 
+#### useLinkClickHandler 
+
+来看看这个 hooks 的具体构成
+
+```tsx
+export function useLinkClickHandler<E extends Element = HTMLAnchorElement>(
+    to: To,
+    {
+        target,
+        replace: replaceProp,
+        state
+    }: {
+        target?: React.HTMLAttributeAnchorTarget;
+        replace?: boolean;
+        state?: any;
+    } = {}
+): (event: React.MouseEvent<E, MouseEvent>) => void {
+    // 来源于 react-router, 获取 navigate 函数, 可以用来跳转
+    let navigate = useNavigate();
+    // 获取当前的 location 对象(非 window.location)
+    let location = useLocation();
+    // 同样来源于react-router,   解析 to, 获取 path
+    let path = useResolvedPath(to);
+
+    return React.useCallback(
+        (event: React.MouseEvent<E, MouseEvent>) => {
+            if (
+                event.button === 0 && // 忽略除了左键点击以外的
+                (!target || target === "_self") && // Let browser handle "target=_blank" etc.
+                !isModifiedEvent(event) // Ignore clicks with modifier keys
+            ) {
+                event.preventDefault();
+
+                // If the URL hasn't changed, a regular <a> will do a replace instead of
+                // a push, so do the same here.
+                let replace =
+                    !!replaceProp || createPath(location) === createPath(path);
+
+                navigate(to, { replace, state });
+            }
+        },
+        [location, navigate, path, replaceProp, state, target, to]
+    );
+}
+```
+
 ### NavLink
+
+等于是对 Link 组件的包装
+
+```tsx
+const NavLink = React.forwardRef<HTMLAnchorElement, NavLinkProps>(
+    function NavLinkWithRef(
+        {
+            "aria-current": ariaCurrentProp = "page",
+            caseSensitive = false,
+            className: classNameProp = "",
+            end = false,
+            style: styleProp,
+            to,
+            ...rest
+        },
+        ref
+    ) {
+        let location = useLocation();
+        let path = useResolvedPath(to);
+
+        let locationPathname = location.pathname;
+        let toPathname = path.pathname;
+        if (!caseSensitive) {
+            locationPathname = locationPathname.toLowerCase();
+            toPathname = toPathname.toLowerCase();
+        }
+
+        let isActive =
+            locationPathname === toPathname ||
+            (!end &&
+                locationPathname.startsWith(toPathname) &&
+                locationPathname.charAt(toPathname.length) === "/");
+
+        let ariaCurrent = isActive ? ariaCurrentProp : undefined;
+
+        let className: string;
+        if (typeof classNameProp === "function") {
+            className = classNameProp({ isActive });
+        } else {
+            // If the className prop is not a function, we use a default `active`
+            // class for <NavLink />s that are active. In v5 `active` was the default
+            // value for `activeClassName`, but we are removing that API and can still
+            // use the old default behavior for a cleaner upgrade path and keep the
+            // simple styling rules working as they currently do.
+            className = [classNameProp, isActive ? "active" : null]
+                .filter(Boolean)
+                .join(" ");
+        }
+
+        let style =
+            typeof styleProp === "function" ? styleProp({ isActive }) : styleProp;
+
+        return (
+            <Link
+                {...rest}
+                aria-current={ariaCurrent}
+                className={className}
+                ref={ref}
+                style={style}
+                to={to}
+            />
+        );
+    }
+);
+```
 
 ### useLinkClickHandler
 
