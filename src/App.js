@@ -23,7 +23,8 @@ function Home() {
     let nav = useNavigate();
     return <div>
         <h2>Home</h2>
-        <button onClick={()=>{
+        <button onClick={(ev)=>{
+            console.log(ev)
             nav('/users')
         }}>users</button>
     </div>;

@@ -268,14 +268,14 @@ export function useLinkClickHandler<E extends Element = HTMLAnchorElement>(
     return React.useCallback(
         (event: React.MouseEvent<E, MouseEvent>) => {
             if (
-                event.button === 0 && // 忽略除了左键点击以外的
-                (!target || target === "_self") && // Let browser handle "target=_blank" etc.
-                !isModifiedEvent(event) // Ignore clicks with modifier keys
+                event.button === 0 && // 忽略除了左键点击以外的, 参考: https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button
+                (!target || target === "_self") && 
+                !isModifiedEvent(event) // 忽略各类键盘按钮, 参考 https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent
+                //  isModifiedEvent = !!(event.metaKey || event.altKey || event.ctrlKey || event.shiftKey);
             ) {
                 event.preventDefault();
 
-                // If the URL hasn't changed, a regular <a> will do a replace instead of
-                // a push, so do the same here.
+                // 对比是否有变化
                 let replace =
                     !!replaceProp || createPath(location) === createPath(path);
 
@@ -305,33 +305,33 @@ const NavLink = React.forwardRef<HTMLAnchorElement, NavLinkProps>(
         },
         ref
     ) {
+        // 这两个 hooks 上述已经说过
         let location = useLocation();
         let path = useResolvedPath(to);
 
         let locationPathname = location.pathname;
         let toPathname = path.pathname;
-        if (!caseSensitive) {
+        if (!caseSensitive) { // 支持字符串大小写不敏感
             locationPathname = locationPathname.toLowerCase();
             toPathname = toPathname.toLowerCase();
         }
 
+        // 是否 active
+        // /user =>  /user/name 
         let isActive =
             locationPathname === toPathname ||
             (!end &&
                 locationPathname.startsWith(toPathname) &&
                 locationPathname.charAt(toPathname.length) === "/");
-
+        
+        // aria 是帮助残障人士辅助阅读的
         let ariaCurrent = isActive ? ariaCurrentProp : undefined;
 
+        // class 样式计算
         let className: string;
         if (typeof classNameProp === "function") {
             className = classNameProp({ isActive });
         } else {
-            // If the className prop is not a function, we use a default `active`
-            // class for <NavLink />s that are active. In v5 `active` was the default
-            // value for `activeClassName`, but we are removing that API and can still
-            // use the old default behavior for a cleaner upgrade path and keep the
-            // simple styling rules working as they currently do.
             className = [classNameProp, isActive ? "active" : null]
                 .filter(Boolean)
                 .join(" ");
