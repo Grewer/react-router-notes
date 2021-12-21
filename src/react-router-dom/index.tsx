@@ -125,7 +125,7 @@ export interface BrowserRouterProps {
     basename?: string;
     children?: React.ReactNode;
     window?: Window;
-}L
+}
 
 /**
  * A <Router> for use in web browsers. Provides the cleanest URLs.

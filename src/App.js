@@ -1,5 +1,5 @@
 import './App.css';
-import {BrowserRouter, HashRouter, Route, Routes, useLocation} from "./react-router-dom";
+import {BrowserRouter, HashRouter, Route, Routes, useLocation, useSearchParams} from "./react-router-dom";
 import {useNavigate} from "react-router";
 
 
@@ -31,7 +31,18 @@ function Home() {
 }
 
 function About() {
-    return <h2>About</h2>;
+    let [searchParams, setSearchParams] = useSearchParams();
+    console.log(searchParams, setSearchParams)
+    console.log(searchParams.get("q"))
+    console.log(searchParams.toString())
+
+    return <h2>
+        About
+    <button onClick={()=>{
+        setSearchParams({q:'qwe'})
+    }
+    }>test</button>
+    </h2>;
 }
 
 function Users() {

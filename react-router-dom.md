@@ -354,11 +354,73 @@ const NavLink = React.forwardRef<HTMLAnchorElement, NavLinkProps>(
 );
 ```
 
-### useLinkClickHandler
-
 ### useSearchParams
 
+用来获取/设置 query 的 hooks
+
+```tsx
+export function useSearchParams(defaultInit?: URLSearchParamsInit) {
+
+    // createSearchParams 的源码下面会讲, 大体是包装了 URLSearchParams 
+    // 相关知识点: https://developer.mozilla.org/zh-CN/docs/Web/API/URLSearchParams
+    let defaultSearchParamsRef = React.useRef(createSearchParams(defaultInit));
+
+    // 获取 location 
+    let location = useLocation();
+    
+    // 解析, 通过对比 更新
+    let searchParams = React.useMemo(() => {
+        let searchParams = createSearchParams(location.search);
+
+        for (let key of defaultSearchParamsRef.current.keys()) {
+            if (!searchParams.has(key)) {
+                defaultSearchParamsRef.current.getAll(key).forEach(value => {
+                    searchParams.append(key, value);
+                });
+            }
+        }
+
+        return searchParams;
+    }, [location.search]);
+
+    let navigate = useNavigate();
+    // 通过 navigate 方法 实现 location.search 的变更
+    let setSearchParams = React.useCallback(
+        (
+            nextInit: URLSearchParamsInit,
+            navigateOptions?: { replace?: boolean; state?: any }
+        ) => {
+            // URLSearchParams toString 就成了 query 格式
+            navigate("?" + createSearchParams(nextInit), navigateOptions);
+        },
+        [navigate]
+    );
+
+    return [searchParams, setSearchParams] as const;
+}
+```
+
 ### createSearchParams
+
+```tsx
+
+function createSearchParams(
+    init: URLSearchParamsInit = ""
+): URLSearchParams {
+    return new URLSearchParams(
+        typeof init === "string" ||
+        Array.isArray(init) ||
+        init instanceof URLSearchParams
+            ? init
+            : Object.keys(init).reduce((memo, key) => {
+                let value = init[key];
+                return memo.concat(
+                    Array.isArray(value) ? value.map(v => [key, v]) : [[key, value]]
+                );
+            }, [] as ParamKeyValuePair[])
+    );
+}
+```
 
 ## 引用
 
