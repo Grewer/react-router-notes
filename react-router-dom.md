@@ -407,6 +407,7 @@ export function useSearchParams(defaultInit?: URLSearchParamsInit) {
 function createSearchParams(
     init: URLSearchParamsInit = ""
 ): URLSearchParams {
+    // 通过原生 api 创建, 数组的话 就类似于 tuple
     return new URLSearchParams(
         typeof init === "string" ||
         Array.isArray(init) ||
@@ -422,6 +423,16 @@ function createSearchParams(
 }
 ```
 
+## 总结
+
+react-router-dom 其实就像 react-router 的再度包装, 给开发提供了良好的基础设施
+
 ## 引用
 
 - https://stackoverflow.com/questions/51974369/what-is-the-difference-between-hashrouter-and-browserrouter-in-react
+
+### 相关知识点汇总
+
+- https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button
+- https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent
+- https://developer.mozilla.org/zh-CN/docs/Web/API/URLSearchParams
