@@ -1,6 +1,6 @@
 import './App.css';
 import {BrowserRouter, HashRouter, Route, Routes, useLocation, useSearchParams} from "./react-router-dom";
-import {useNavigate} from "react-router";
+import {useNavigate} from "./react-router";
 
 
 function App(props) {
