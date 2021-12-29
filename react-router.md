@@ -140,69 +140,26 @@ export function MemoryRouter({
 }
 ```
 
-那我们现在来看一看这个方法, 这里值将 他与 `createHashHistory` 不同的地方:
+那我们现在来看一看这个方法, 这里只讲他与 `createHashHistory` 不同的地方:
 
 ```tsx
 export function createMemoryHistory(
   options: MemoryHistoryOptions = {}
 ): MemoryHistory {
-  let { initialEntries = ['/'], initialIndex } = options;
+  let { initialEntries = ['/'], initialIndex } = options; // 不同的初始值 initialEntries
   let entries: Location[] = initialEntries.map((entry) => {
     let location = readOnly<Location>({
       pathname: '/',
       search: '',
       hash: '',
       state: null,
-      key: createKey(),
+      key: createKey(), // 通过 random 生成唯一值
       ...(typeof entry === 'string' ? parsePath(entry) : entry)
-    });
-
-    warning(
-      location.pathname.charAt(0) === '/',
-      `Relative pathnames are not supported in createMemoryHistory({ initialEntries }) (invalid entry: ${JSON.stringify(
-        entry
-      )})`
-    );
-
+    }); // 这里的 location 属于是直接创建, HashHistory 中是使用的 window.location
+      // readOnly方法 可以看做 (obj)=>obj, 并没有太大作用
     return location;
   });
-  let index = clamp(
-    initialIndex == null ? entries.length - 1 : initialIndex,
-    0,
-    entries.length - 1
-  );
-
-  let action = Action.Pop;
-  let location = entries[index];
-  let listeners = createEvents<Listener>();
-  let blockers = createEvents<Blocker>();
-
-  function createHref(to: To) {
-    return typeof to === 'string' ? to : createPath(to);
-  }
-
-  function getNextLocation(to: To, state: any = null): Location {
-    return readOnly<Location>({
-      pathname: location.pathname,
-      search: '',
-      hash: '',
-      ...(typeof to === 'string' ? parsePath(to) : to),
-      state,
-      key: createKey()
-    });
-  }
-
-  function allowTx(action: Action, location: Location, retry: () => void) {
-    return (
-      !blockers.length || (blockers.call({ action, location, retry }), false)
-    );
-  }
-
-  function applyTx(nextAction: Action, nextLocation: Location) {
-    action = nextAction;
-    location = nextLocation;
-    listeners.call({ action, location });
-  }
+ 
 
   function push(to: To, state?: any) {
     let nextAction = Action.Push;
@@ -211,41 +168,21 @@ export function createMemoryHistory(
       push(to, state);
     }
 
-    warning(
-      location.pathname.charAt(0) === '/',
-      `Relative pathnames are not supported in memory history.push(${JSON.stringify(
-        to
-      )})`
-    );
-
+    // 忽略其他类似的代码
+    
     if (allowTx(nextAction, nextLocation, retry)) {
       index += 1;
+      // 别处是调用原生 API, history.pushState
       entries.splice(index, entries.length, nextLocation);
       applyTx(nextAction, nextLocation);
     }
   }
 
-  function replace(to: To, state?: any) {
-    let nextAction = Action.Replace;
-    let nextLocation = getNextLocation(to, state);
-    function retry() {
-      replace(to, state);
-    }
-
-    warning(
-      location.pathname.charAt(0) === '/',
-      `Relative pathnames are not supported in memory history.replace(${JSON.stringify(
-        to
-      )})`
-    );
-
-    if (allowTx(nextAction, nextLocation, retry)) {
-      entries[index] = nextLocation;
-      applyTx(nextAction, nextLocation);
-    }
-  }
+  
+  // 与 push 类似, 忽略 replace
 
   function go(delta: number) {
+      // 与HashHistory不同, 也是走的类似 push
     let nextIndex = clamp(index + delta, 0, entries.length - 1);
     let nextAction = Action.Pop;
     let nextLocation = entries[nextIndex];
@@ -260,31 +197,7 @@ export function createMemoryHistory(
   }
 
   let history: MemoryHistory = {
-    get index() {
-      return index;
-    },
-    get action() {
-      return action;
-    },
-    get location() {
-      return location;
-    },
-    createHref,
-    push,
-    replace,
-    go,
-    back() {
-      go(-1);
-    },
-    forward() {
-      go(1);
-    },
-    listen(listener) {
-      return listeners.push(listener);
-    },
-    block(blocker) {
-      return blockers.push(blocker);
-    }
+    // 基本相同
   };
 
   return history;
