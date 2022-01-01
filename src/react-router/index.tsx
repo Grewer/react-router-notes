@@ -67,9 +67,6 @@ interface NavigationContextObject {
 
 const NavigationContext = React.createContext<NavigationContextObject>(null!);
 
-if (__DEV__) {
-    NavigationContext.displayName = "Navigation";
-}
 
 interface LocationContextObject {
     location: Location;
@@ -78,9 +75,6 @@ interface LocationContextObject {
 
 const LocationContext = React.createContext<LocationContextObject>(null!);
 
-if (__DEV__) {
-    LocationContext.displayName = "Location";
-}
 
 interface RouteContextObject {
     outlet: React.ReactElement | null;
@@ -91,10 +85,10 @@ const RouteContext = React.createContext<RouteContextObject>({
     outlet: null,
     matches: []
 });
-
-if (__DEV__) {
-    RouteContext.displayName = "Route";
-}
+//
+// if (__DEV__) {
+//     RouteContext.displayName = "Route";
+// }
 
 ///////////////////////////////////////////////////////////////////////////////
 // COMPONENTS
@@ -621,7 +615,7 @@ export function useRoutes(
     let parentPathname = routeMatch ? routeMatch.pathname : "/";
     let parentPathnameBase = routeMatch ? routeMatch.pathnameBase : "/";
     let parentRoute = routeMatch && routeMatch.route;
-    if (__DEV__) {
+    if (true) {
         // You won't get a warning about 2 different <Routes> under a <Route>
         // without a trailing *, but this is a best-effort warning anyway since we
         // cannot even give the warning unless they land at the parent route.
@@ -684,7 +678,7 @@ export function useRoutes(
             : pathname.slice(parentPathnameBase.length) || "/";
     let matches = matchRoutes(routes, { pathname: remainingPathname });
 
-    if (__DEV__) {
+    if (true) {
         warning(
             parentRoute || matches != null,
             `No routes matched location "${location.pathname}${location.search}${location.hash}" `

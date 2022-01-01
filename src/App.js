@@ -1,5 +1,5 @@
 import './App.css';
-import {BrowserRouter, HashRouter, Route, Routes, useLocation, useSearchParams} from "./react-router-dom";
+import {BrowserRouter, HashRouter, Outlet, Route, Routes, useLocation, useSearchParams} from "./react-router-dom";
 import {useNavigate} from "./react-router";
 
 
@@ -10,11 +10,25 @@ function App(props) {
     return (
         <HashRouter>
             <Routes>
-                <Route path="/about" element={<About/>}/>
-                <Route path="/users" element={<Users/>}/>
-                <Route path="/" element={<Home/>}/>
+                <Route path={'/'} element={<Dashboard></Dashboard>}>
+                    <Route path="qqwe" element={<About/>}/>
+                    <Route path="/about" element={<About/>}/>
+                    <Route path="/users" element={<Users/>}/>
+                </Route>
+
+                {/*<Route path="/" element={<Home/>}/>*/}
             </Routes>
         </HashRouter>
+    );
+}
+
+
+function Dashboard() {
+    return (
+        <div>
+            <h1>Dashboard</h1>
+            <Outlet />
+        </div>
     );
 }
 

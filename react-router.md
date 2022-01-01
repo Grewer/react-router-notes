@@ -240,3 +240,58 @@ function App() {
     </div>
 }
 ```
+
+
+## Outlet
+
+用来渲染子路由的元素, 简单来说就是一个路由的占位符
+
+```tsx
+export function Outlet(props: OutletProps): React.ReactElement | null {
+    return useOutlet(props.context);
+}
+
+export function useOutlet(context?: unknown): React.ReactElement | null {
+    let outlet = React.useContext(RouteContext).outlet;
+    if (outlet) {
+        return (
+            <OutletContext.Provider value={context}>{outlet}</OutletContext.Provider>
+        );
+    }
+    return outlet;
+}
+```
+
+代码很简单, 使用的逻辑是这样:
+
+```jsx
+
+function App(props) {
+    return (
+        <HashRouter>
+            <Routes>
+                <Route path={'/'} element={<Dashboard></Dashboard>}>
+                    <Route path="qqwe" element={<About/>}/>
+                    <Route path="about" element={<About/>}/>
+                    <Route path="users" element={<Users/>}/>
+                </Route>
+            </Routes>
+        </HashRouter>
+    );
+}
+
+// 其中外层的Dashboard:
+
+function Dashboard() {
+    return (
+        <div>
+            <h1>Dashboard</h1>
+            <Outlet />
+            // 这里就会渲染他的子路由了
+            // 和以前 children 差不多
+        </div>
+    );
+}
+```
+
+## useParams
