@@ -203,3 +203,40 @@ export function createMemoryHistory(
   return history;
 }
 ```
+
+## Navigate
+
+用来改变 当然 location 的方法, 是一个 react-router 抛出的 API
+```tsx
+
+export function Navigate({ to, replace, state }: NavigateProps): null {
+    // 直接调用 useNavigate 来获取 navigate 方法, 并且  useEffect 每次都会触发
+    
+    let navigate = useNavigate();
+    React.useEffect(() => {
+        navigate(to, { replace, state });
+    });
+
+    return null;
+}
+
+```
+
+常用的场景:
+
+```jsx
+
+function App() {
+    // 一旦 user 是有值的, 就跳转至 `/dashboard` 页面了
+    // 算是跳转路由的一种方案
+    return <div>
+        {user && (
+            <Navigate to="/dashboard" replace={true} />
+        )}
+        <form onSubmit={event => this.handleSubmit(event)}>
+            <input type="text" name="username" />
+            <input type="password" name="password" />
+        </form>
+    </div>
+}
+```
