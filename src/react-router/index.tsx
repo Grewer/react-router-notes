@@ -572,6 +572,7 @@ export function useParams<
     [ParamsOrKey] extends [string] ? Params<ParamsOrKey> : Partial<ParamsOrKey>
     > {
     let { matches } = React.useContext(RouteContext);
+    console.log(matches)
     let routeMatch = matches[matches.length - 1];
     return routeMatch ? (routeMatch.params as any) : {};
 }

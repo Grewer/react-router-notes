@@ -295,3 +295,41 @@ function Dashboard() {
 ```
 
 ## useParams
+从当前URL所匹配的路径中, 返回一个对象的键/值对的动态参数。
+
+```tsx
+function useParams<
+    ParamsOrKey extends string | Record<string, string | undefined> = string
+    >(): Readonly<
+    [ParamsOrKey] extends [string] ? Params<ParamsOrKey> : Partial<ParamsOrKey>
+    > {
+    // 直接获取了 RouteContext 中 matches 数组的最后一个对象, 如果没有就是空对象
+    let { matches } = React.useContext(RouteContext);
+    let routeMatch = matches[matches.length - 1];
+    return routeMatch ? (routeMatch.params as any) : {};
+}
+```
+
+
+## useResolvedPath
+
+将给定的`to'值的路径名与当前位置进行比较
+
+在 `<NavLink>` 这个组件中使用到
+
+```tsx
+function useResolvedPath(to: To): Path {
+    let { matches } = React.useContext(RouteContext);
+    let { pathname: locationPathname } = useLocation();
+    
+    // 合并成一个 json 字符, 至于为什么又要解析, 是为了添加字符层的缓存, 如果是一个对象, 就不好浅比较了
+    let routePathnamesJson = JSON.stringify(
+        matches.map(match => match.pathnameBase)
+    );
+    
+    return React.useMemo(
+        () => resolveTo(to, JSON.parse(routePathnamesJson), locationPathname),
+        [to, routePathnamesJson, locationPathname]
+    );
+}
+```

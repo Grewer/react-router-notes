@@ -1,6 +1,6 @@
 import './App.css';
 import {BrowserRouter, HashRouter, Outlet, Route, Routes, useLocation, useSearchParams} from "./react-router-dom";
-import {useNavigate} from "./react-router";
+import {useNavigate, useParams} from "./react-router";
 
 
 function App(props) {
@@ -11,9 +11,9 @@ function App(props) {
         <HashRouter>
             <Routes>
                 <Route path={'/'} element={<Dashboard></Dashboard>}>
-                    <Route path="qqwe" element={<About/>}/>
-                    <Route path="/about" element={<About/>}/>
-                    <Route path="/users" element={<Users/>}/>
+                    <Route path="about2/:id" element={<About/>}/>
+                    <Route path="about" element={<Home/>}/>
+                    <Route path="users" element={<Users/>}/>
                 </Route>
 
                 {/*<Route path="/" element={<Home/>}/>*/}
@@ -24,6 +24,8 @@ function App(props) {
 
 
 function Dashboard() {
+    // let nav = useNavigate();
+
     return (
         <div>
             <h1>Dashboard</h1>
@@ -34,12 +36,10 @@ function Dashboard() {
 
 
 function Home() {
-    let nav = useNavigate();
     return <div>
         <h2>Home</h2>
         <button onClick={(ev)=>{
             console.log(ev)
-            nav('/users')
         }}>users</button>
     </div>;
 }
@@ -49,6 +49,10 @@ function About() {
     console.log(searchParams, setSearchParams)
     console.log(searchParams.get("q"))
     console.log(searchParams.toString())
+    // let nav = useNavigate();
+
+    const params = useParams()
+    console.log(params, params.id)
 
     return <h2>
         About
@@ -56,6 +60,10 @@ function About() {
         setSearchParams({q:'qwe'})
     }
     }>test</button>
+    {/*<button onClick={()=>{*/}
+    {/*    nav('about2/22')*/}
+    {/*}*/}
+    {/*}>test2</button>*/}
     </h2>;
 }
 
