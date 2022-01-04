@@ -333,3 +333,93 @@ function useResolvedPath(to: To): Path {
     );
 }
 ```
+
+## useRoutes
+
+useRoutes钩子的功能等同于<Routes>，但它使用JavaScript对象而不是<Route>元素来定义路由。
+相当于是一种 schema 版本, 更好的配置性
+
+
+### 使用方式:
+
+如果使用过 umi, 是不是会感觉到一模一样
+
+```tsx
+function App() {
+  let element = useRoutes([
+    { path: "/", element: <Home /> },
+    { path: "dashboard", element: <Dashboard /> },
+    {
+      path: "invoices",
+      element: <Invoices />,
+      children: [
+        { path: ":id", element: <Invoice /> },
+        { path: "sent", element: <SentInvoices /> }
+      ]
+    },
+    { path: "*", element: <NotFound /> }
+  ]);
+
+  return element;
+}
+```
+
+### 源码
+
+```tsx
+export function useRoutes(
+    routes: RouteObject[],
+    locationArg?: Partial<Location> | string
+): React.ReactElement | null {
+    
+    let { matches: parentMatches } = React.useContext(RouteContext);
+    let routeMatch = parentMatches[parentMatches.length - 1];
+    // 获取匹配的 route
+    
+    let parentParams = routeMatch ? routeMatch.params : {};
+    let parentPathname = routeMatch ? routeMatch.pathname : "/";
+    let parentPathnameBase = routeMatch ? routeMatch.pathnameBase : "/";
+    let parentRoute = routeMatch && routeMatch.route;
+    // 这里上面都是一些参数, 没有就是默认值
+    
+    //  等于 React.useContext(LocationContext).location, 约等于原生的 location
+    let locationFromContext = useLocation();
+
+    let location;
+    if (locationArg) { // 对于配置项参数的一些判断
+        let parsedLocationArg =
+            typeof locationArg === "string" ? parsePath(locationArg) : locationArg;
+        location = parsedLocationArg;
+    } else {
+        location = locationFromContext;
+    }
+    // 如果参数里有则使用参数里的, 如果没有使用 context 的
+    
+
+    let pathname = location.pathname || "/";
+    let remainingPathname =
+        parentPathnameBase === "/"
+            ? pathname
+            : pathname.slice(parentPathnameBase.length) || "/";
+    // matchRoutes这个方法放在下面讲
+    let matches = matchRoutes(routes, { pathname: remainingPathname });
+
+    return _renderMatches(
+        matches &&
+        matches.map(match =>
+            Object.assign({}, match, {
+                params: Object.assign({}, parentParams, match.params),
+                pathname: joinPaths([parentPathnameBase, match.pathname]),
+                pathnameBase:
+                    match.pathnameBase === "/"
+                        ? parentPathnameBase
+                        : joinPaths([parentPathnameBase, match.pathnameBase])
+            })
+        ),
+        parentMatches
+    );
+}
+
+
+```
+
