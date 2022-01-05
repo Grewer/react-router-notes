@@ -207,22 +207,9 @@ export function createMemoryHistory(
 ## Navigate
 
 用来改变 当然 location 的方法, 是一个 react-router 抛出的 API
-```tsx
 
-export function Navigate({ to, replace, state }: NavigateProps): null {
-    // 直接调用 useNavigate 来获取 navigate 方法, 并且  useEffect 每次都会触发
-    
-    let navigate = useNavigate();
-    React.useEffect(() => {
-        navigate(to, { replace, state });
-    });
+### 使用方式:
 
-    return null;
-}
-
-```
-
-常用的场景:
 
 ```jsx
 
@@ -241,28 +228,33 @@ function App() {
 }
 ```
 
+### 源码
+
+```tsx
+
+export function Navigate({ to, replace, state }: NavigateProps): null {
+    // 直接调用 useNavigate 来获取 navigate 方法, 并且  useEffect 每次都会触发
+    
+    let navigate = useNavigate();
+    React.useEffect(() => {
+        navigate(to, { replace, state });
+    });
+
+    return null;
+}
+
+```
+
+
+
 
 ## Outlet
 
 用来渲染子路由的元素, 简单来说就是一个路由的占位符
 
-```tsx
-export function Outlet(props: OutletProps): React.ReactElement | null {
-    return useOutlet(props.context);
-}
+代码很简单, 使用的逻辑是这样
 
-export function useOutlet(context?: unknown): React.ReactElement | null {
-    let outlet = React.useContext(RouteContext).outlet;
-    if (outlet) {
-        return (
-            <OutletContext.Provider value={context}>{outlet}</OutletContext.Provider>
-        );
-    }
-    return outlet;
-}
-```
-
-代码很简单, 使用的逻辑是这样:
+### 使用方式:
 
 ```jsx
 
@@ -293,6 +285,26 @@ function Dashboard() {
     );
 }
 ```
+
+### 源码
+
+```tsx
+export function Outlet(props: OutletProps): React.ReactElement | null {
+    return useOutlet(props.context);
+}
+
+export function useOutlet(context?: unknown): React.ReactElement | null {
+    let outlet = React.useContext(RouteContext).outlet;
+    if (outlet) {
+        return (
+            <OutletContext.Provider value={context}>{outlet}</OutletContext.Provider>
+        );
+    }
+    return outlet;
+}
+```
+
+
 
 ## useParams
 从当前URL所匹配的路径中, 返回一个对象的键/值对的动态参数。
@@ -401,7 +413,7 @@ export function useRoutes(
         parentPathnameBase === "/"
             ? pathname
             : pathname.slice(parentPathnameBase.length) || "/";
-    // matchRoutes这个方法放在下面讲
+    // matchRoutes 大概的作用是通过pathname遍历寻找,匹配到的路由    集体源码放在下面讲
     let matches = matchRoutes(routes, { pathname: remainingPathname });
 
     return _renderMatches(
@@ -419,7 +431,80 @@ export function useRoutes(
         parentMatches
     );
 }
-
-
 ```
 
+
+### matchRoutes
+
+```tsx
+function matchRoutes(
+    routes: RouteObject[],
+    locationArg: Partial<Location> | string,
+    basename = "/"
+): RouteMatch[] | null {
+    let location =
+        typeof locationArg === "string" ? parsePath(locationArg) : locationArg;
+
+    let pathname = stripBasename(location.pathname || "/", basename);
+
+    if (pathname == null) {
+        return null;
+    }
+
+    let branches = flattenRoutes(routes);
+    rankRouteBranches(branches);
+
+    let matches = null;
+    for (let i = 0; matches == null && i < branches.length; ++i) {
+        matches = matchRouteBranch(branches[i], pathname);
+    }
+
+    return matches;
+}
+```
+
+
+### 工具函数 stripBasename
+
+```tsx
+function stripBasename(pathname: string, basename: string): string | null {
+    if (basename === "/") return pathname;
+
+    if (!pathname.toLowerCase().startsWith(basename.toLowerCase())) {
+        return null;
+    }
+
+    let nextChar = pathname.charAt(basename.length);
+    if (nextChar && nextChar !== "/") {
+        // pathname does not start with basename/
+        return null;
+    }
+
+    return pathname.slice(basename.length) || "/";
+}
+```
+
+### _renderMatches
+
+```tsx
+function _renderMatches(
+    matches: RouteMatch[] | null,
+    parentMatches: RouteMatch[] = []
+): React.ReactElement | null {
+    if (matches == null) return null;
+
+    return matches.reduceRight((outlet, match, index) => {
+        return (
+            <RouteContext.Provider
+                children={
+                    match.route.element !== undefined ? match.route.element : <Outlet />
+                }
+                value={{
+                    outlet,
+                    matches: parentMatches.concat(matches.slice(0, index + 1))
+                }}
+            />
+        );
+    }, null as React.ReactElement | null);
+}
+```
