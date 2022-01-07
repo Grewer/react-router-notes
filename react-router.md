@@ -445,13 +445,19 @@ function matchRoutes(
     let location =
         typeof locationArg === "string" ? parsePath(locationArg) : locationArg;
 
+    // 获取排除 basename 的 pathname
     let pathname = stripBasename(location.pathname || "/", basename);
 
     if (pathname == null) {
         return null;
     }
 
+    // flattenRoutes 函数的主要作用, 压平 routes, 方便遍历
+    // 源码见下方
     let branches = flattenRoutes(routes);
+    
+    // 对路由进行排序
+    // rankRouteBranches 源码见下方
     rankRouteBranches(branches);
 
     let matches = null;
@@ -465,6 +471,8 @@ function matchRoutes(
 
 
 ### 工具函数 stripBasename
+
+拆分 basename, 代码很简单, 这里就直接贴出来了
 
 ```tsx
 function stripBasename(pathname: string, basename: string): string | null {
@@ -481,6 +489,67 @@ function stripBasename(pathname: string, basename: string): string | null {
     }
 
     return pathname.slice(basename.length) || "/";
+}
+```
+
+### flattenRoutes
+
+递归处理 routes, 压平 routes 
+
+```tsx
+function flattenRoutes(
+    routes: RouteObject[],
+    branches: RouteBranch[] = [],
+    parentsMeta: RouteMeta[] = [],
+    parentPath = ""
+): RouteBranch[] {
+    routes.forEach((route, index) => {
+        let meta: RouteMeta = {
+            relativePath: route.path || "",
+            caseSensitive: route.caseSensitive === true,
+            childrenIndex: index,
+            route
+        };
+
+        if (meta.relativePath.startsWith("/")) {
+            meta.relativePath = meta.relativePath.slice(parentPath.length);
+        }
+        
+        // joinPaths 源码: (paths)=>paths.join("/").replace(/\/\/+/g, "/")
+        // 把数组转成字符串, 并且清除重复斜杠
+        let path = joinPaths([parentPath, meta.relativePath]);
+        let routesMeta = parentsMeta.concat(meta);
+
+        // 如果有子路由则递归
+        if (route.children && route.children.length > 0) {
+            flattenRoutes(route.children, branches, routesMeta, path);
+        }
+
+        // 匹配不到就 return
+        if (route.path == null && !route.index) {
+            return;
+        }
+        // 压平后组件添加的对象
+        branches.push({ path, score: computeScore(path, route.index), routesMeta });
+    });
+
+    return branches;
+}
+```
+
+### rankRouteBranches
+
+对路由进行排序, 根据 `score` 变量来比较
+```tsx
+function rankRouteBranches(branches: RouteBranch[]): void {
+    branches.sort((a, b) =>
+        a.score !== b.score
+            ? b.score - a.score // Higher score first
+            : compareIndexes(
+                a.routesMeta.map(meta => meta.childrenIndex),
+                b.routesMeta.map(meta => meta.childrenIndex)
+            )
+    );
 }
 ```
 
