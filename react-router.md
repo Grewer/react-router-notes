@@ -434,7 +434,7 @@ export function useRoutes(
 ```
 
 
-### matchRoutes
+### useRoutes-matchRoutes
 
 ```tsx
 function matchRoutes(
@@ -460,6 +460,8 @@ function matchRoutes(
     // rankRouteBranches 源码见下方
     rankRouteBranches(branches);
 
+    
+    // 筛选出匹配到的路由
     let matches = null;
     for (let i = 0; matches == null && i < branches.length; ++i) {
         matches = matchRouteBranch(branches[i], pathname);
@@ -470,7 +472,7 @@ function matchRoutes(
 ```
 
 
-### 工具函数 stripBasename
+#### useRoutes-matchRoutes-stripBasename
 
 拆分 basename, 代码很简单, 这里就直接贴出来了
 
@@ -484,7 +486,6 @@ function stripBasename(pathname: string, basename: string): string | null {
 
     let nextChar = pathname.charAt(basename.length);
     if (nextChar && nextChar !== "/") {
-        // pathname does not start with basename/
         return null;
     }
 
@@ -492,7 +493,7 @@ function stripBasename(pathname: string, basename: string): string | null {
 }
 ```
 
-### flattenRoutes
+#### useRoutes-matchRoutes-flattenRoutes
 
 递归处理 routes, 压平 routes 
 
@@ -537,9 +538,10 @@ function flattenRoutes(
 }
 ```
 
-### rankRouteBranches
+#### useRoutes-matchRoutes-rankRouteBranches
 
-对路由进行排序, 根据 `score` 变量来比较
+对路由进行排序, 这里可以略过,不管排序算法如何, 只需要知道, 知道输入的值是经过一系列排序的就行
+
 ```tsx
 function rankRouteBranches(branches: RouteBranch[]): void {
     branches.sort((a, b) =>
@@ -553,7 +555,120 @@ function rankRouteBranches(branches: RouteBranch[]): void {
 }
 ```
 
-### _renderMatches
+#### useRoutes-matchRoutes-matchRouteBranch
+
+匹配函数, 接受参数 branch 就是某一个 rankRouteBranches
+
+```tsx
+function matchRouteBranch<ParamKey extends string = string>(
+    branch: RouteBranch,
+    pathname: string
+): RouteMatch<ParamKey>[] | null {
+    let { routesMeta } = branch;
+
+    let matchedParams = {};
+    let matchedPathname = "/";
+    let matches: RouteMatch[] = [];
+    
+    //  routesMeta 详细来源可以查看 上面的flattenRoutes
+    for (let i = 0; i < routesMeta.length; ++i) {
+        let meta = routesMeta[i];
+        let end = i === routesMeta.length - 1;
+        let remainingPathname =
+            matchedPathname === "/"
+                ? pathname
+                : pathname.slice(matchedPathname.length) || "/";
+        
+        // 比较, matchPath源码键下方
+        let match = matchPath(
+            { path: meta.relativePath, caseSensitive: meta.caseSensitive, end },
+            remainingPathname
+        );
+
+        if (!match) return null;
+
+        Object.assign(matchedParams, match.params);
+
+        let route = meta.route;
+
+        matches.push({
+            params: matchedParams,
+            pathname: joinPaths([matchedPathname, match.pathname]),
+            pathnameBase: joinPaths([matchedPathname, match.pathnameBase]),
+            route
+        });
+
+        if (match.pathnameBase !== "/") {
+            matchedPathname = joinPaths([matchedPathname, match.pathnameBase]);
+        }
+    }
+
+    return matches;
+}
+```
+
+#### useRoutes-matchRoutes-matchRouteBranch-matchPath
+
+对一个URL路径名进行模式匹配，并返回有关匹配的信息。
+他也是一个保留在外的可用 API
+
+```tsx
+export function matchPath<
+    ParamKey extends ParamParseKey<Path>,
+    Path extends string
+    >(
+    pattern: PathPattern<Path> | Path,
+    pathname: string
+): PathMatch<ParamKey> | null {
+    if (typeof pattern === "string") {
+        pattern = { path: pattern, caseSensitive: false, end: true };
+    }
+
+    let [matcher, paramNames] = compilePath(
+        pattern.path,
+        pattern.caseSensitive,
+        pattern.end
+    );
+
+    let match = pathname.match(matcher);
+    if (!match) return null;
+
+    let matchedPathname = match[0];
+    let pathnameBase = matchedPathname.replace(/(.)\/+$/, "$1");
+    let captureGroups = match.slice(1);
+    let params: Params = paramNames.reduce<Mutable<Params>>(
+        (memo, paramName, index) => {
+            // We need to compute the pathnameBase here using the raw splat value
+            // instead of using params["*"] later because it will be decoded then
+            if (paramName === "*") {
+                let splatValue = captureGroups[index] || "";
+                pathnameBase = matchedPathname
+                    .slice(0, matchedPathname.length - splatValue.length)
+                    .replace(/(.)\/+$/, "$1");
+            }
+
+            memo[paramName] = safelyDecodeURIComponent(
+                captureGroups[index] || "",
+                paramName
+            );
+            return memo;
+        },
+        {}
+    );
+
+    return {
+        params,
+        pathname: matchedPathname,
+        pathnameBase,
+        pattern
+    };
+}
+
+```
+
+### useRoutes-_renderMatches
+
+渲染匹配到的路由
 
 ```tsx
 function _renderMatches(
