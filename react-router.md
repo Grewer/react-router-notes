@@ -413,9 +413,12 @@ export function useRoutes(
         parentPathnameBase === "/"
             ? pathname
             : pathname.slice(parentPathnameBase.length) || "/";
-    // matchRoutes 大概的作用是通过pathname遍历寻找,匹配到的路由    集体源码放在下面讲
+    // matchRoutes 大概的作用是通过pathname遍历寻找,匹配到的路由    具体源码放在下面讲
     let matches = matchRoutes(routes, { pathname: remainingPathname });
 
+    
+    // 最后调用渲染函数  首先对数据进行 map
+    // joinPaths  的作用约等于 paths.join("/") 并且去除多余的斜杠
     return _renderMatches(
         matches &&
         matches.map(match =>
@@ -461,7 +464,7 @@ function matchRoutes(
     rankRouteBranches(branches);
 
     
-    // 筛选出匹配到的路由
+    // 筛选出匹配到的路由 matchRouteBranch源码在下面讲
     let matches = null;
     for (let i = 0; matches == null && i < branches.length; ++i) {
         matches = matchRouteBranch(branches[i], pathname);
@@ -579,12 +582,13 @@ function matchRouteBranch<ParamKey extends string = string>(
                 ? pathname
                 : pathname.slice(matchedPathname.length) || "/";
         
-        // 比较, matchPath源码键下方
+        // 比较, matchPath 源码在下方
         let match = matchPath(
             { path: meta.relativePath, caseSensitive: meta.caseSensitive, end },
             remainingPathname
         );
 
+        // 如果返回是空 则直接返回
         if (!match) return null;
 
         Object.assign(matchedParams, match.params);
@@ -620,10 +624,12 @@ export function matchPath<
     pattern: PathPattern<Path> | Path,
     pathname: string
 ): PathMatch<ParamKey> | null {
+    // pattern 的重新赋值
     if (typeof pattern === "string") {
         pattern = { path: pattern, caseSensitive: false, end: true };
     }
 
+    // TODO
     let [matcher, paramNames] = compilePath(
         pattern.path,
         pattern.caseSensitive,
@@ -665,6 +671,59 @@ export function matchPath<
 }
 
 ```
+
+
+#### useRoutes-matchRoutes-matchRouteBranch-matchPath-compilePath
+
+```tsx
+
+function compilePath(
+    path: string,
+    caseSensitive = false,
+    end = true
+): [RegExp, string[]] {
+    warning(
+        path === "*" || !path.endsWith("*") || path.endsWith("/*"),
+        `Route path "${path}" will be treated as if it were ` +
+        `"${path.replace(/\*$/, "/*")}" because the \`*\` character must ` +
+        `always follow a \`/\` in the pattern. To get rid of this warning, ` +
+        `please change the route path to "${path.replace(/\*$/, "/*")}".`
+    );
+
+    let paramNames: string[] = [];
+    let regexpSource =
+        "^" +
+        path
+            .replace(/\/*\*?$/, "") // Ignore trailing / and /*, we'll handle it below
+            .replace(/^\/*/, "/") // Make sure it has a leading /
+            .replace(/[\\.*+^$?{}|()[\]]/g, "\\$&") // Escape special regex chars
+            .replace(/:(\w+)/g, (_: string, paramName: string) => {
+                paramNames.push(paramName);
+                return "([^\\/]+)";
+            });
+
+    if (path.endsWith("*")) {
+        paramNames.push("*");
+        regexpSource +=
+            path === "*" || path === "/*"
+                ? "(.*)$" // Already matched the initial /, just match the rest
+                : "(?:\\/(.+)|\\/*)$"; // Don't include the / in params["*"]
+    } else {
+        regexpSource += end
+            ? "\\/*$" // When matching to the end, ignore trailing slashes
+            : // Otherwise, match a word boundary or a proceeding /. The word boundary restricts
+              // parent routes to matching only their own words and nothing more, e.g. parent
+              // route "/home" should not match "/home2".
+            "(?:\\b|\\/|$)";
+    }
+
+    let matcher = new RegExp(regexpSource, caseSensitive ? undefined : "i");
+
+    return [matcher, paramNames];
+}
+
+```
+
 
 ### useRoutes-_renderMatches
 
