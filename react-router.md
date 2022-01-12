@@ -629,7 +629,7 @@ export function matchPath<
         pattern = { path: pattern, caseSensitive: false, end: true };
     }
 
-    // TODO
+    // 通过正则匹配返回匹配到的路径
     let [matcher, paramNames] = compilePath(
         pattern.path,
         pattern.caseSensitive,
@@ -682,26 +682,23 @@ function compilePath(
     caseSensitive = false,
     end = true
 ): [RegExp, string[]] {
-    warning(
-        path === "*" || !path.endsWith("*") || path.endsWith("/*"),
-        `Route path "${path}" will be treated as if it were ` +
-        `"${path.replace(/\*$/, "/*")}" because the \`*\` character must ` +
-        `always follow a \`/\` in the pattern. To get rid of this warning, ` +
-        `please change the route path to "${path.replace(/\*$/, "/*")}".`
-    );
-
     let paramNames: string[] = [];
+    // 正则匹配替换
     let regexpSource =
         "^" +
         path
-            .replace(/\/*\*?$/, "") // Ignore trailing / and /*, we'll handle it below
-            .replace(/^\/*/, "/") // Make sure it has a leading /
+            // 忽略尾随的 / 和 /*
+            .replace(/\/*\*?$/, "")
+            // 确保以 / 开头
+            .replace(/^\/*/, "/") 
+            // 转义特殊字符
             .replace(/[\\.*+^$?{}|()[\]]/g, "\\$&") // Escape special regex chars
             .replace(/:(\w+)/g, (_: string, paramName: string) => {
                 paramNames.push(paramName);
                 return "([^\\/]+)";
             });
 
+    // 对于*号的特别判断
     if (path.endsWith("*")) {
         paramNames.push("*");
         regexpSource +=
@@ -710,15 +707,14 @@ function compilePath(
                 : "(?:\\/(.+)|\\/*)$"; // Don't include the / in params["*"]
     } else {
         regexpSource += end
-            ? "\\/*$" // When matching to the end, ignore trailing slashes
-            : // Otherwise, match a word boundary or a proceeding /. The word boundary restricts
-              // parent routes to matching only their own words and nothing more, e.g. parent
-              // route "/home" should not match "/home2".
+            ? "\\/*$" // 匹配到末尾时，忽略尾部斜杠
+            : 
             "(?:\\b|\\/|$)";
     }
 
     let matcher = new RegExp(regexpSource, caseSensitive ? undefined : "i");
-
+    
+    // 返回匹配结果
     return [matcher, paramNames];
 }
 
