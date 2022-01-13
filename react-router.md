@@ -591,10 +591,12 @@ function matchRouteBranch<ParamKey extends string = string>(
         // 如果返回是空 则直接返回
         if (!match) return null;
 
+        // 更换对象源
         Object.assign(matchedParams, match.params);
 
         let route = meta.route;
-
+        
+        // push 到最终结果上, joinPaths 不再赘述
         matches.push({
             params: matchedParams,
             pathname: joinPaths([matchedPathname, match.pathname]),
@@ -629,23 +631,26 @@ export function matchPath<
         pattern = { path: pattern, caseSensitive: false, end: true };
     }
 
-    // 通过正则匹配返回匹配到的路径
+    // 通过正则匹配返回匹配到的正则表达式   matcher 为 RegExp
     let [matcher, paramNames] = compilePath(
         pattern.path,
         pattern.caseSensitive,
         pattern.end
     );
 
+    // 正则对象的 match 方法
     let match = pathname.match(matcher);
     if (!match) return null;
 
+    // 取 match 到的值
     let matchedPathname = match[0];
     let pathnameBase = matchedPathname.replace(/(.)\/+$/, "$1");
     let captureGroups = match.slice(1);
+    
+    // params 转成对象  { param:value, ... }
     let params: Params = paramNames.reduce<Mutable<Params>>(
         (memo, paramName, index) => {
-            // We need to compute the pathnameBase here using the raw splat value
-            // instead of using params["*"] later because it will be decoded then
+            // 如果是*号  转换
             if (paramName === "*") {
                 let splatValue = captureGroups[index] || "";
                 pathnameBase = matchedPathname
@@ -653,6 +658,7 @@ export function matchPath<
                     .replace(/(.)\/+$/, "$1");
             }
 
+            // safelyDecodeURIComponent  等于 decodeURIComponent + try_catch
             memo[paramName] = safelyDecodeURIComponent(
                 captureGroups[index] || "",
                 paramName
@@ -730,8 +736,10 @@ function _renderMatches(
     matches: RouteMatch[] | null,
     parentMatches: RouteMatch[] = []
 ): React.ReactElement | null {
+    
     if (matches == null) return null;
-
+    
+    // 通过 context 传递数据
     return matches.reduceRight((outlet, match, index) => {
         return (
             <RouteContext.Provider
