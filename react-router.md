@@ -755,3 +755,111 @@ function _renderMatches(
     }, null as React.ReactElement | null);
 }
 ```
+
+
+## Router
+
+为应用程序的其他部分提供context信息
+
+通常不会使用此组件, 他是 MemoryRouter 最终渲染的组件
+
+在 react-router-dom 库中, 也是 BrowserRouter 和 HashRouter 的最终渲染组件
+
+```tsx
+export function Router({
+                           basename: basenameProp = "/",
+                           children = null,
+                           location: locationProp,
+                           navigationType = NavigationType.Pop,
+                           navigator,
+                           static: staticProp = false
+                       }: RouterProps): React.ReactElement | null {
+
+    // 格式化 baseName 
+    let basename = normalizePathname(basenameProp);
+    
+    // memo context value
+    let navigationContext = React.useMemo(
+        () => ({ basename, navigator, static: staticProp }),
+        [basename, navigator, staticProp]
+    );
+
+    // 如果是字符串则解析  根据 #, ? 特殊符号解析 url
+    if (typeof locationProp === "string") {
+        locationProp = parsePath(locationProp);
+    }
+
+    let {
+        pathname = "/",
+        search = "",
+        hash = "",
+        state = null,
+        key = "default"
+    } = locationProp;
+
+    // 同样的缓存
+    let location = React.useMemo(() => {
+        // 这还方法在 useRoutes-matchRoutes-stripBasename 讲过这里就不多说
+        let trailingPathname = stripBasename(pathname, basename);
+
+        if (trailingPathname == null) {
+            return null;
+        }
+
+        return {
+            pathname: trailingPathname,
+            search,
+            hash,
+            state,
+            key
+        };
+    }, [basename, pathname, search, hash, state, key]);
+
+    // 空值判断
+    if (location == null) {
+        return null;
+    }
+
+    // 提供 context 的 provider, 传递 children
+    return (
+        <NavigationContext.Provider value={navigationContext}>
+            <LocationContext.Provider
+                children={children}
+                value={{ location, navigationType }}
+            />
+        </NavigationContext.Provider>
+    );
+}
+```
+
+
+
+## parsePath
+
+此源码来自于 history 仓库
+
+```tsx
+function parsePath(path: string): Partial<Path> {
+  let parsedPath: Partial<Path> = {};
+
+  if (path) {
+    let hashIndex = path.indexOf('#');
+    if (hashIndex >= 0) {
+      parsedPath.hash = path.substr(hashIndex);
+      path = path.substr(0, hashIndex);
+    }
+
+    let searchIndex = path.indexOf('?');
+    if (searchIndex >= 0) {
+      parsedPath.search = path.substr(searchIndex);
+      path = path.substr(0, searchIndex);
+    }
+
+    if (path) {
+      parsedPath.pathname = path;
+    }
+  }
+
+  return parsedPath;
+}
+```
