@@ -842,24 +842,88 @@ export function Router({
 function parsePath(path: string): Partial<Path> {
   let parsedPath: Partial<Path> = {};
 
+  // 首先确定 path
   if (path) {
+      // 是否有#号 , 如果有则截取
     let hashIndex = path.indexOf('#');
     if (hashIndex >= 0) {
       parsedPath.hash = path.substr(hashIndex);
       path = path.substr(0, hashIndex);
     }
 
+    // 再判断 ? , 有也截取
     let searchIndex = path.indexOf('?');
     if (searchIndex >= 0) {
       parsedPath.search = path.substr(searchIndex);
       path = path.substr(0, searchIndex);
     }
 
+    // 最后就是 path
     if (path) {
       parsedPath.pathname = path;
     }
   }
-
+// 返回结果
   return parsedPath;
 }
+```
+
+## Routes
+
+用来包裹 route 的元素, 主要是通过 useRoutes 的逻辑
+
+```tsx
+ function Routes({
+                           children,
+                           location
+                       }: RoutesProps): React.ReactElement | null {
+    return useRoutes(createRoutesFromChildren(children), location);
+}
+```
+
+## Routes-createRoutesFromChildren
+
+接收到的参数一般都是 Route children, 可能是多层嵌套的
+
+```tsx
+function createRoutesFromChildren(
+    children: React.ReactNode
+): RouteObject[] {
+    let routes: RouteObject[] = [];
+
+    // 使用官方函数循环
+    React.Children.forEach(children, element => {
+        if (element.type === React.Fragment) {
+            // 如果是 React.Fragment 组件 则直接push 递归函数
+            routes.push.apply(
+                routes,
+                createRoutesFromChildren(element.props.children)
+            );
+            return;
+        }
+
+        invariant(
+            element.type === Route,
+            `[${
+                typeof element.type === "string" ? element.type : element.type.name
+            }] is not a <Route> component. All component children of <Routes> must be a <Route> or <React.Fragment>`
+        );
+
+        let route: RouteObject = {
+            caseSensitive: element.props.caseSensitive,
+            element: element.props.element,
+            index: element.props.index,
+            path: element.props.path
+        };
+
+        if (element.props.children) {
+            route.children = createRoutesFromChildren(element.props.children);
+        }
+
+        routes.push(route);
+    });
+
+    return routes;
+}
+
 ```
