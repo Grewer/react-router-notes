@@ -379,6 +379,8 @@ function App() {
 ### 源码
 
 ```tsx
+// 具体的 routes 对象是如何生成的, 下面的 Routes-createRoutesFromChildren 会讲到
+
 export function useRoutes(
     routes: RouteObject[],
     locationArg?: Partial<Location> | string
@@ -883,7 +885,8 @@ function parsePath(path: string): Partial<Path> {
 
 ## Routes-createRoutesFromChildren
 
-接收到的参数一般都是 Route children, 可能是多层嵌套的
+接收到的参数一般都是 Route children, 可能是多层嵌套的, 最后得的我们定义的 route 组件结构,
+它将被传递给 useRoutes 函数
 
 ```tsx
 function createRoutesFromChildren(
@@ -901,21 +904,15 @@ function createRoutesFromChildren(
             );
             return;
         }
-
-        invariant(
-            element.type === Route,
-            `[${
-                typeof element.type === "string" ? element.type : element.type.name
-            }] is not a <Route> component. All component children of <Routes> must be a <Route> or <React.Fragment>`
-        );
-
+        
         let route: RouteObject = {
             caseSensitive: element.props.caseSensitive,
             element: element.props.element,
             index: element.props.index,
             path: element.props.path
-        };
-
+        }; // route 对象具有的属性
+        
+        // 同样地递归
         if (element.props.children) {
             route.children = createRoutesFromChildren(element.props.children);
         }
