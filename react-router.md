@@ -929,6 +929,129 @@ function createRoutesFromChildren(
 
 ## useHref
 
+返回完整的链接
+
+```tsx
+export function useHref(to: To): string {
+    let { basename, navigator } = React.useContext(NavigationContext);
+    // useResolvedPath 在上面讲过
+    let { hash, pathname, search } = useResolvedPath(to);
+
+    let joinedPathname = pathname;
+    if (basename !== "/") {
+        let toPathname = getToPathname(to);
+        let endsWithSlash = toPathname != null && toPathname.endsWith("/");
+        joinedPathname =
+            pathname === "/"
+                ? basename + (endsWithSlash ? "/" : "")
+                : joinPaths([basename, pathname]);
+    }
+
+    // 可以看做, 路由的拼接, 包括 ? , #
+    return navigator.createHref({ pathname: joinedPathname, search, hash });
+}
+
+```
+
+## resolveTo
+
+
+```tsx
+function resolveTo(
+    toArg: To,
+    routePathnames: string[],
+    locationPathname: string
+): Path {
+    // parsePath上面已经分析过了
+    let to = typeof toArg === "string" ? parsePath(toArg) : toArg;
+    let toPathname = toArg === "" || to.pathname === "" ? "/" : to.pathname;
+
+    let from: string;
+    if (toPathname == null) {
+        from = locationPathname;
+    } else {
+        let routePathnameIndex = routePathnames.length - 1;
+
+        // 如果以 .. 开始的路径
+        if (toPathname.startsWith("..")) {
+            let toSegments = toPathname.split("/");
+
+            // 去除 ..
+            while (toSegments[0] === "..") {
+                toSegments.shift();
+                routePathnameIndex -= 1;
+            }
+
+            to.pathname = toSegments.join("/");
+        }
+
+        // from 复制
+        from = routePathnameIndex >= 0 ? routePathnames[routePathnameIndex] : "/";
+    }
+
+    // 解析, 返回对象
+    let path = resolvePath(to, from);
+
+    if (
+        toPathname &&
+        toPathname !== "/" &&
+        toPathname.endsWith("/") &&
+        !path.pathname.endsWith("/")
+    ) {
+        path.pathname += "/";
+    }
+    // 确保加上末尾 /
+
+    return path;
+}
+```
+
+### resolveTo-resolvePath
+
+返回一个相对于给定路径名的解析路径对象, 这里的函数也基本都讲过
+
+```tsx
+function resolvePath(to: To, fromPathname = "/"): Path {
+    let {
+        pathname: toPathname,
+        search = "",
+        hash = ""
+    } = typeof to === "string" ? parsePath(to) : to;
+
+    let pathname = toPathname
+        ? toPathname.startsWith("/")
+            ? toPathname
+            : resolvePathname(toPathname, fromPathname)
+        : fromPathname;
+
+    return {
+        pathname,
+        search: normalizeSearch(search),
+        hash: normalizeHash(hash)
+    };
+}
+```
+
+### resolveTo-resolvePath-resolvePathname
+
+```tsx
+function resolvePathname(relativePath: string, fromPathname: string): string {
+    let segments = fromPathname.replace(/\/+$/, "").split("/");
+    let relativeSegments = relativePath.split("/");
+
+    relativeSegments.forEach(segment => {
+        if (segment === "..") {
+            // Keep the root "" segment so the pathname starts at /
+            if (segments.length > 1) segments.pop();
+        } else if (segment !== ".") {
+            segments.push(segment);
+        }
+    });
+
+    return segments.length > 1 ? segments.join("/") : "/";
+}
+```
+
 ## useLocation useNavigationType
 
 ## useMatch
