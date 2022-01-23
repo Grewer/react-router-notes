@@ -234,7 +234,7 @@ function App() {
 
 export function Navigate({ to, replace, state }: NavigateProps): null {
     // 直接调用 useNavigate 来获取 navigate 方法, 并且  useEffect 每次都会触发
-    
+    // useNavigate 源码在下方会讲到
     let navigate = useNavigate();
     React.useEffect(() => {
         navigate(to, { replace, state });
@@ -1021,6 +1021,7 @@ function resolvePath(to: To, fromPathname = "/"): Path {
     let pathname = toPathname
         ? toPathname.startsWith("/")
             ? toPathname
+            // resolvePathname
             : resolvePathname(toPathname, fromPathname)
         : fromPathname;
 
@@ -1036,12 +1037,13 @@ function resolvePath(to: To, fromPathname = "/"): Path {
 
 ```tsx
 function resolvePathname(relativePath: string, fromPathname: string): string {
+    // 去除末尾斜杠, 再以斜杠分割成数组
     let segments = fromPathname.replace(/\/+$/, "").split("/");
     let relativeSegments = relativePath.split("/");
 
     relativeSegments.forEach(segment => {
         if (segment === "..") {
-            // Keep the root "" segment so the pathname starts at /
+            // 移除 ..
             if (segments.length > 1) segments.pop();
         } else if (segment !== ".") {
             segments.push(segment);
@@ -1054,9 +1056,84 @@ function resolvePathname(relativePath: string, fromPathname: string): string {
 
 ## useLocation useNavigationType
 
+```tsx
+function useLocation(): Location {
+    // 只是获取 context 中的数据
+    return React.useContext(LocationContext).location;
+}
+```
+
+同上
+
+```tsx
+function useNavigationType(): NavigationType {
+    return React.useContext(LocationContext).navigationType;
+}
+```
+
 ## useMatch
 
+```tsx
+
+function useMatch<
+    ParamKey extends ParamParseKey<Path>,
+    Path extends string
+    >(pattern: PathPattern<Path> | Path): PathMatch<ParamKey> | null {
+    // 获取 location.pathname
+    let { pathname } = useLocation();
+    // matchPath  在 useRoutes-matchRoutes-matchRouteBranch-matchPath 中讲到过
+    // 对一个URL路径名进行模式匹配，并返回有关匹配的信息。
+    return React.useMemo(
+        () => matchPath<ParamKey, Path>(pattern, pathname),
+        [pathname, pattern]
+    );
+}
+```
+
 ## useNavigate
+
+```tsx
+function useNavigate(): NavigateFunction {
+    let { basename, navigator } = React.useContext(NavigationContext);
+    let { matches } = React.useContext(RouteContext);
+    let { pathname: locationPathname } = useLocation();
+    let routePathnamesJson = JSON.stringify(
+        matches.map(match => match.pathnameBase)
+    );
+    let activeRef = React.useRef(false);
+    React.useEffect(() => {
+        activeRef.current = true;
+    });
+    let navigate: NavigateFunction = React.useCallback(
+        (to: To | number, options: NavigateOptions = {}) => {
+            warning(
+                activeRef.current,
+                `You should call navigate() in a React.useEffect(), not when ` +
+                `your component is first rendered.`
+            );
+            if (!activeRef.current) return;
+            if (typeof to === "number") {
+                navigator.go(to);
+                return;
+            }
+            let path = resolveTo(
+                to,
+                JSON.parse(routePathnamesJson),
+                locationPathname
+            );
+            if (basename !== "/") {
+                path.pathname = joinPaths([basename, path.pathname]);
+            }
+            (!!options.replace ? navigator.replace : navigator.push)(
+                path,
+                options.state
+            );
+        },
+        [basename, navigator, routePathnamesJson, locationPathname]
+    );
+    return navigate;
+}
+```
 
 ## generatePath
 
