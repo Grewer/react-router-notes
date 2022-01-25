@@ -955,6 +955,7 @@ export function useHref(to: To): string {
 
 ## resolveTo
 
+解析toArg, 返回对象
 
 ```tsx
 function resolveTo(
@@ -1092,30 +1093,33 @@ function useMatch<
 
 ## useNavigate
 
+此 hooks 是用来获取操作路由对象的
+
 ```tsx
 function useNavigate(): NavigateFunction {
+    // 从 context 获取数据
     let { basename, navigator } = React.useContext(NavigationContext);
     let { matches } = React.useContext(RouteContext);
     let { pathname: locationPathname } = useLocation();
+    // 转成 json, 方便 memo 对比
     let routePathnamesJson = JSON.stringify(
         matches.map(match => match.pathnameBase)
     );
     let activeRef = React.useRef(false);
     React.useEffect(() => {
         activeRef.current = true;
-    });
+    }); // 控制渲染, 需要在渲染完毕一次后操作
+    
+    // 路由操作函数
     let navigate: NavigateFunction = React.useCallback(
         (to: To | number, options: NavigateOptions = {}) => {
-            warning(
-                activeRef.current,
-                `You should call navigate() in a React.useEffect(), not when ` +
-                `your component is first rendered.`
-            );
-            if (!activeRef.current) return;
+            if (!activeRef.current) return; // 控制渲染
+            // 如果 go 是数字, 则结果类似于 go 方法
             if (typeof to === "number") {
                 navigator.go(to);
                 return;
             }
+            // 解析go
             let path = resolveTo(
                 to,
                 JSON.parse(routePathnamesJson),
@@ -1124,6 +1128,7 @@ function useNavigate(): NavigateFunction {
             if (basename !== "/") {
                 path.pathname = joinPaths([basename, path.pathname]);
             }
+            // 这一块 就是 前一个括号产生函数, 后一个括号传递参数
             (!!options.replace ? navigator.replace : navigator.push)(
                 path,
                 options.state
@@ -1131,6 +1136,7 @@ function useNavigate(): NavigateFunction {
         },
         [basename, navigator, routePathnamesJson, locationPathname]
     );
+    // 最后返回
     return navigate;
 }
 ```
