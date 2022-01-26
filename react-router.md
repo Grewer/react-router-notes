@@ -1129,6 +1129,17 @@ function useNavigate(): NavigateFunction {
                 path.pathname = joinPaths([basename, path.pathname]);
             }
             // 这一块 就是 前一个括号产生函数, 后一个括号传递参数
+            // 小小地转换下:
+            // !!options.replace ? 
+            //     navigator.replace(
+            //         path,
+            //         options.state
+            //     )
+            //     : navigator.push(
+            //         path,
+            //         options.state
+            //     )
+            //
             (!!options.replace ? navigator.replace : navigator.push)(
                 path,
                 options.state
@@ -1143,4 +1154,34 @@ function useNavigate(): NavigateFunction {
 
 ## generatePath
 
-## computeScore
+返回一个有参数插值的路径。 原理还是通过正则替换
+
+```tsx
+function generatePath(path: string, params: Params = {}): string {
+    return path
+        .replace(/:(\w+)/g, (_, key) => {
+            return params[key]!;
+        })
+        .replace(/\/*\*$/, _ =>
+            params["*"] == null ? "" : params["*"].replace(/^\/*/, "/")
+        );
+}
+```
+他的具体使用:
+
+```tsx
+generatePath("/users/:id", { id: 42 }); // "/users/42"
+generatePath("/files/:type/*", {
+  type: "img",
+  "*": "cat.jpg"
+}); // "/files/img/cat.jpg"
+```
+
+
+这里的代码可以说是覆盖整个 react-router 80%以上, 有些简单的, 用处小的这里也不再过多赘述了
+
+## 参考文档:
+
+- https://reactrouter.com/docs/en/v6
+- https://github.com/remix-run/react-router
+- https://github.com/remix-run/history
