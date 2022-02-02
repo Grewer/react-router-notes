@@ -339,7 +339,7 @@ function useResolvedPath(to: To): Path {
         matches.map(match => match.pathnameBase)
     );
     
-    // TODO resolveTo
+    // resolveTo 的具体作用在下方讨论
     return React.useMemo(
         () => resolveTo(to, JSON.parse(routePathnamesJson), locationPathname),
         [to, routePathnamesJson, locationPathname]
@@ -536,7 +536,7 @@ function flattenRoutes(
         if (route.path == null && !route.index) {
             return;
         }
-        // 压平后组件添加的对象, TODO computeScore
+        // 压平后组件添加的对象
         branches.push({ path, score: computeScore(path, route.index), routesMeta });
     });
 
